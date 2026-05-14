@@ -227,6 +227,14 @@ textarea:focus-visible {
   min-width: 0;
 }
 
+.field-note {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
 .toggle-field {
   justify-content: end;
   min-height: 70px;
@@ -461,6 +469,24 @@ textarea::placeholder {
   line-height: 1.5;
 }
 
+.perk-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.perk-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid rgba(140, 230, 110, 0.14);
+  color: var(--muted);
+  background: rgba(4, 7, 4, 0.32);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
 .perk-groups {
   display: grid;
   gap: 10px;
@@ -543,6 +569,15 @@ textarea::placeholder {
   border-color: var(--green-300);
   background: var(--green-300);
   box-shadow: 0 0 8px rgba(140, 230, 110, 0.3);
+}
+
+.rank-dots button.blocked {
+  border-color: rgba(225, 184, 91, 0.2);
+  background:
+    linear-gradient(45deg, transparent 45%, rgba(225, 184, 91, 0.35) 45%, rgba(225, 184, 91, 0.35) 55%, transparent 55%),
+    rgba(7, 16, 8, 0.88);
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .gate {

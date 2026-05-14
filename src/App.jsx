@@ -159,6 +159,8 @@ function createProfile() {
   return {
     level: 1,
     unspentPoints: 0,
+    autoTrackPoints: true,
+    strictPerkGates: true,
     difficulty: "Normal",
     special: { ...DEFAULT_SPECIAL },
     bobbleheads: { ...DEFAULT_BOBBLEHEADS },
@@ -187,6 +189,8 @@ function normalizeProfile(profile) {
 
   next.level = clampNumber(next.level, 1, 300);
   next.unspentPoints = clampNumber(next.unspentPoints, 0, 999);
+  next.autoTrackPoints = next.autoTrackPoints !== false;
+  next.strictPerkGates = next.strictPerkGates !== false;
   next.difficulty = DIFFICULTIES.includes(next.difficulty) ? next.difficulty : "Normal";
   next.special = Object.fromEntries(
     STATS.map((stat) => [stat.id, clampNumber(next.special?.[stat.id] ?? 1, 1, 10)]),
@@ -247,6 +251,14 @@ function getEffectiveSpecial(profile) {
 
 function formatSpecial(effective) {
   return STATS.map((stat) => `${stat.abbr} ${effective[stat.id]}`).join(" / ");
+}
+
+function getEarnedPerkPoints(profile) {
+  return Math.max(0, profile.level - 1);
+}
+
+function getSpentPerkRanks(profile) {
+  return Object.values(profile.perks).reduce((total, rank) => total + clampNumber(rank, 0, 99), 0);
 }
 
 function getPerkItems(profile, effective) {
@@ -401,6 +413,99 @@ function getMatchedReason(item, weights, profile) {
   return reasons.slice(0, 2).join(" ");
 }
 
+function getMissingRequirements(item) {
+  const stat = STAT_BY_ID[item.perk.stat];
+  const missing = [];
+
+  if (!item.hasSpecial) missing.push(`${stat.abbr} ${item.perk.specialReq}`);
+  if (!item.hasLevel) missing.push(`Level ${item.levelReq}`);
+
+  return missing;
+}
+
+function getRankButtonState(item, rank, profile) {
+  const currentRank = item.currentRank;
+
+  if (rank <= currentRank) {
+    return { enabled: true, label: `Rank ${rank}. Click to lower to ${rank - 1}.` };
+  }
+
+  if (!profile.strictPerkGates) {
+    return { enabled: true, label: `Manual entry: set Rank ${rank}.` };
+  }
+
+  if (rank !== currentRank + 1) {
+    return { enabled: false, label: "Take the previous rank first." };
+  }
+
+  const levelReq = item.perk.levels[rank - 1];
+  const stat = STAT_BY_ID[item.perk.stat];
+  const hasLevel = profile.level >= levelReq;
+  const hasSpecial = item.statValue >= item.perk.specialReq;
+
+  if (!hasSpecial) {
+    return { enabled: false, label: `Needs ${stat.abbr} ${item.perk.specialReq}. You have ${item.statValue}.` };
+  }
+
+  if (!hasLevel) {
+    return { enabled: false, label: `Needs Level ${levelReq}. You are Level ${profile.level}.` };
+  }
+
+  if (profile.autoTrackPoints && profile.unspentPoints < 1) {
+    return { enabled: false, label: "No unspent perk point tracked." };
+  }
+
+  return { enabled: true, label: `Take Rank ${rank}.` };
+}
+
+function getPerkGate(item, profile) {
+  if (item.maxed) return { label: "MAX", className: "gate" };
+
+  const missing = getMissingRequirements(item);
+  if (missing.length) return { label: "LOCKED", className: "gate locked", title: `Needs ${missing.join(" and ")}` };
+  if (profile.strictPerkGates && profile.autoTrackPoints && profile.unspentPoints < 1) {
+    return { label: "NO PTS", className: "gate locked", title: "No unspent perk point tracked." };
+  }
+
+  return { label: "READY", className: "gate", title: `Rank ${item.nextRank} is available.` };
+}
+
+function getPerkNextLine(item, profile) {
+  const stat = STAT_BY_ID[item.perk.stat];
+
+  if (item.maxed) return `Rank ${item.currentRank}/${item.perk.levels.length} - maxed`;
+
+  const missing = getMissingRequirements(item);
+  if (missing.length) {
+    return `Rank ${item.currentRank}/${item.perk.levels.length} - next needs ${missing.join(" and ")}`;
+  }
+
+  if (profile.strictPerkGates && profile.autoTrackPoints && profile.unspentPoints < 1) {
+    return `Rank ${item.currentRank}/${item.perk.levels.length} - next ready, no unspent point`;
+  }
+
+  return `Rank ${item.currentRank}/${item.perk.levels.length} - next Rank ${item.nextRank}, ${stat.abbr} ${item.perk.specialReq}, Level ${item.levelReq}`;
+}
+
+function describeAdvisorContext(profile, prompt, focus, concern, weights) {
+  const tags = Object.entries(weights)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([tag]) => tag);
+  const parts = [];
+
+  if (focus !== "Not sure yet") parts.push(focus.toLowerCase());
+  if (prompt.trim() || concern.trim()) parts.push("your question");
+  if (profile.playstyleNotes.trim()) parts.push("your loadout notes");
+  if (profile.difficulty === "Survival" || profile.difficulty === "Very Hard") parts.push(`${profile.difficulty} difficulty`);
+  if (profile.powerArmor) parts.push("power armor");
+  if (profile.companion.trim()) parts.push(`companion: ${profile.companion.trim()}`);
+  if (tags.length) parts.push(`signals: ${tags.join(", ")}`);
+
+  return parts.length ? parts.join("; ") : "not enough build context yet";
+}
+
 function findBlockedRelevant(items, weights, promptText) {
   const normalizedPrompt = promptText.toLowerCase();
 
@@ -424,6 +529,8 @@ function buildAdvisorReply(profile, { mode, prompt = "", focus = "Not sure yet",
   const items = getPerkItems(profile, effective);
   const weights = buildTagWeights(profile, prompt, focus, concern);
   const wantsToSave = /\b(save|bank|hold)\b/i.test(`${prompt} ${concern}`);
+  const earnedPoints = getEarnedPerkPoints(profile);
+  const spentRanks = getSpentPerkRanks(profile);
   const scored = items
     .map((item) => ({ ...item, score: scorePerk(item, weights, profile) }))
     .filter((item) => item.score > -100)
@@ -440,14 +547,21 @@ function buildAdvisorReply(profile, { mode, prompt = "", focus = "Not sure yet",
     }
   }
 
-  lines.push(`Build gates: Level ${profile.level}; effective S.P.E.C.I.A.L. ${formatSpecial(effective)}; unspent points ${profile.unspentPoints}.`);
+  lines.push(`My read: ${describeAdvisorContext(profile, prompt, focus, concern, weights)}.`);
+  lines.push(`Build gates: Level ${profile.level}; effective S.P.E.C.I.A.L. ${formatSpecial(effective)}; earned level-up points ${earnedPoints}; tracked perk ranks ${spentRanks}; unspent points ${profile.unspentPoints}.`);
+  if (profile.autoTrackPoints && profile.unspentPoints === 0) {
+    lines.push("Planning note: you have no unspent point tracked, so treat recommendations as next-level targets unless your point count needs correcting.");
+  }
   if (wantsToSave) {
     lines.push("Short answer: yes, saving is valid. Spend only when a perk clearly fixes your current weapon, survival, crafting, or utility need.");
   }
 
   if (scored.length > 0) {
+    const bestLabel = profile.autoTrackPoints && profile.unspentPoints === 0 ? "Best next target" : "Best read";
+    const listLabel = profile.autoTrackPoints && profile.unspentPoints === 0 ? "Other targets:" : "Other available picks:";
     lines.push("");
-    lines.push("Best available picks:");
+    lines.push(`${bestLabel}: ${scored[0].perk.name} Rank ${scored[0].nextRank} is the cleanest fit for the current build read.`);
+    lines.push(listLabel);
     scored.forEach((item, index) => {
       const stat = STAT_BY_ID[item.perk.stat];
       lines.push(
@@ -461,7 +575,7 @@ function buildAdvisorReply(profile, { mode, prompt = "", focus = "Not sure yet",
 
   if (blocked.length > 0) {
     lines.push("");
-    lines.push("Not yet:");
+    lines.push("Not yet, but worth tracking:");
     blocked.forEach((item) => {
       const stat = STAT_BY_ID[item.perk.stat];
       const missing = [];
@@ -499,10 +613,8 @@ function App() {
   const gearBonuses = useMemo(() => parseGearBonuses(profile.gearBonuses), [profile.gearBonuses]);
   const effectiveSpecial = useMemo(() => getEffectiveSpecial(profile), [profile]);
   const perkItems = useMemo(() => getPerkItems(profile, effectiveSpecial), [profile, effectiveSpecial]);
-  const totalPerkRanks = useMemo(
-    () => Object.values(profile.perks).reduce((total, rank) => total + clampNumber(rank, 0, 99), 0),
-    [profile.perks],
-  );
+  const totalPerkRanks = useMemo(() => getSpentPerkRanks(profile), [profile]);
+  const earnedPerkPoints = useMemo(() => getEarnedPerkPoints(profile), [profile]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
@@ -516,6 +628,19 @@ function App() {
     setProfile((current) => normalizeProfile({ ...current, ...patch }));
   };
 
+  const setLevel = (value) => {
+    setProfile((current) => {
+      const normalized = normalizeProfile(current);
+      const nextLevel = clampNumber(value, 1, 300);
+      const delta = nextLevel - normalized.level;
+      const nextUnspent = normalized.autoTrackPoints
+        ? clampNumber(normalized.unspentPoints + delta, 0, 999)
+        : normalized.unspentPoints;
+
+      return normalizeProfile({ ...normalized, level: nextLevel, unspentPoints: nextUnspent });
+    });
+  };
+
   const setSpecial = (statId, value) => {
     patchProfile({ special: { ...profile.special, [statId]: clampNumber(value, 1, 10) } });
   };
@@ -524,15 +649,34 @@ function App() {
     patchProfile({ bobbleheads: { ...profile.bobbleheads, [statId]: checked } });
   };
 
-  const setPerkRank = (perk, rank) => {
-    const nextPerks = { ...profile.perks };
-    const nextRank = clampNumber(rank, 0, perk.levels.length);
-    if (nextRank === 0) {
-      delete nextPerks[perk.name];
-    } else {
-      nextPerks[perk.name] = nextRank;
-    }
-    patchProfile({ perks: nextPerks });
+  const setPerkRank = (item, rank) => {
+    const targetRank = clampNumber(rank, 0, item.perk.levels.length);
+    const rankState = getRankButtonState(item, targetRank, profile);
+
+    if (!rankState.enabled) return;
+
+    setProfile((current) => {
+      const normalized = normalizeProfile(current);
+      const effective = getEffectiveSpecial(normalized);
+      const currentItem = getPerkItems(normalized, effective).find((perkItem) => perkItem.perk.name === item.perk.name);
+      if (!currentItem) return normalized;
+
+      const currentRank = currentItem.currentRank;
+      const delta = targetRank - currentRank;
+      const nextPerks = { ...normalized.perks };
+
+      if (targetRank === 0) {
+        delete nextPerks[currentItem.perk.name];
+      } else {
+        nextPerks[currentItem.perk.name] = targetRank;
+      }
+
+      const nextUnspent = normalized.autoTrackPoints
+        ? clampNumber(normalized.unspentPoints - delta, 0, 999)
+        : normalized.unspentPoints;
+
+      return normalizeProfile({ ...normalized, perks: nextPerks, unspentPoints: nextUnspent });
+    });
   };
 
   const setMagazineCount = (name, value) => {
@@ -619,7 +763,7 @@ function App() {
             <strong>{profile.unspentPoints}</strong>
           </div>
           <div>
-            <span>PERK RANKS</span>
+            <span>SPENT RANKS</span>
             <strong>{totalPerkRanks}</strong>
           </div>
           <div>
@@ -659,7 +803,7 @@ function App() {
                 <label className="field">
                   <span>Level</span>
                   <div className="stepper">
-                    <button type="button" onClick={() => patchProfile({ level: profile.level - 1 })}>
+                    <button type="button" onClick={() => setLevel(profile.level - 1)}>
                       -
                     </button>
                     <input
@@ -668,12 +812,13 @@ function App() {
                       max="300"
                       type="number"
                       value={profile.level}
-                      onChange={(event) => patchProfile({ level: event.target.value })}
+                      onChange={(event) => setLevel(event.target.value)}
                     />
-                    <button type="button" onClick={() => patchProfile({ level: profile.level + 1 })}>
+                    <button type="button" onClick={() => setLevel(profile.level + 1)}>
                       +
                     </button>
                   </div>
+                  <em className="field-note">{earnedPerkPoints} level-up points earned</em>
                 </label>
                 <label className="field">
                   <span>Unspent perk points</span>
@@ -692,6 +837,15 @@ function App() {
                       +
                     </button>
                   </div>
+                  <em className="field-note">{profile.autoTrackPoints ? "Auto points on" : "Manual points"}</em>
+                </label>
+                <label className="toggle-field">
+                  <input
+                    checked={profile.autoTrackPoints}
+                    type="checkbox"
+                    onChange={(event) => patchProfile({ autoTrackPoints: event.target.checked })}
+                  />
+                  <span>Auto points</span>
                 </label>
                 <label className="field">
                   <span>Difficulty</span>
@@ -852,8 +1006,26 @@ function App() {
                   </div>
                 ))}
               </div>
+              <div className="perk-controls">
+                <label>
+                  <input
+                    checked={profile.strictPerkGates}
+                    type="checkbox"
+                    onChange={(event) => patchProfile({ strictPerkGates: event.target.checked })}
+                  />
+                  <span>Strict gates</span>
+                </label>
+                <label>
+                  <input
+                    checked={profile.autoTrackPoints}
+                    type="checkbox"
+                    onChange={(event) => patchProfile({ autoTrackPoints: event.target.checked })}
+                  />
+                  <span>Auto spend</span>
+                </label>
+              </div>
               <p className="quiet-copy">
-                Perk dots track ranks you already took. A locked gate can still be tracked if your save already has it.
+                Earned {earnedPerkPoints}. Spent {totalPerkRanks}. Unspent {profile.unspentPoints}.
               </p>
             </aside>
 
@@ -878,34 +1050,31 @@ function App() {
                     {expandedStats[stat.id] && (
                       <div className="perk-list">
                         {statItems.map((item) => {
-                          const locked = !item.maxed && (!item.hasLevel || !item.hasSpecial);
+                          const gate = getPerkGate(item, profile);
                           return (
                             <div className={item.currentRank ? "perk-row owned" : "perk-row"} key={item.perk.name}>
                               <div className="perk-copy">
                                 <strong>{item.perk.name}</strong>
-                                <span>
-                                  {stat.abbr} {item.perk.specialReq}
-                                  {item.maxed
-                                    ? " - maxed"
-                                    : ` - next Rank ${item.nextRank}, Level ${item.levelReq}`}
-                                </span>
+                                <span>{getPerkNextLine(item, profile)}</span>
                               </div>
                               <div className="rank-dots" aria-label={`${item.perk.name} rank`}>
                                 {Array.from({ length: item.perk.levels.length }, (_, index) => {
                                   const rank = index + 1;
+                                  const rankState = getRankButtonState(item, rank, profile);
                                   return (
                                     <button
-                                      className={index < item.currentRank ? "filled" : ""}
+                                      className={`${index < item.currentRank ? "filled" : ""} ${rankState.enabled ? "" : "blocked"}`}
+                                      disabled={!rankState.enabled}
                                       key={rank}
                                       type="button"
-                                      title={`Rank ${rank}, Level ${item.perk.levels[index]}`}
-                                      onClick={() => setPerkRank(item.perk, item.currentRank === rank ? rank - 1 : rank)}
+                                      title={`${rankState.label} Requirement: ${stat.abbr} ${item.perk.specialReq}, Level ${item.perk.levels[index]}.`}
+                                      onClick={() => setPerkRank(item, item.currentRank === rank ? rank - 1 : rank)}
                                     />
                                   );
                                 })}
                               </div>
-                              <span className={locked ? "gate locked" : "gate"}>
-                                {item.maxed ? "MAX" : locked ? "GATED" : "READY"}
+                              <span className={gate.className} title={gate.title}>
+                                {gate.label}
                               </span>
                             </div>
                           );
