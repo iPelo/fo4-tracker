@@ -261,6 +261,23 @@ function getSpentPerkRanks(profile) {
   return Object.values(profile.perks).reduce((total, rank) => total + clampNumber(rank, 0, 99), 0);
 }
 
+// Level 1 starts with 28 SPECIAL points to distribute (7 stats x 1 = 7 base, +21 to assign = 28 total).
+// Any base SPECIAL above 28 came from perk points spent on stats instead of perks.
+const STARTING_SPECIAL_TOTAL = 28;
+
+function getStatPointsSpent(profile) {
+  const baseTotal = STATS.reduce((sum, stat) => sum + clampNumber(profile.special[stat.id] || 1, 1, 10), 0);
+  return Math.max(0, baseTotal - STARTING_SPECIAL_TOTAL);
+}
+
+function getActualUnspentPoints(profile) {
+  if (!profile.autoTrackPoints) return profile.unspentPoints;
+  const earned = getEarnedPerkPoints(profile);
+  const spentOnPerks = getSpentPerkRanks(profile);
+  const spentOnStats = getStatPointsSpent(profile);
+  return Math.max(0, earned - spentOnPerks - spentOnStats);
+}
+
 function getPerkItems(profile, effective) {
   return ALL_PERKS.map((perk) => {
     const currentRank = clampNumber(profile.perks[perk.name] || 0, 0, perk.levels.length);
@@ -451,7 +468,7 @@ function getRankButtonState(item, rank, profile) {
     return { enabled: false, label: `Needs Level ${levelReq}. You are Level ${profile.level}.` };
   }
 
-  if (profile.autoTrackPoints && profile.unspentPoints < 1) {
+  if (profile.autoTrackPoints && getActualUnspentPoints(profile) < 1) {
     return { enabled: false, label: "No unspent perk point tracked." };
   }
 
@@ -463,7 +480,7 @@ function getPerkGate(item, profile) {
 
   const missing = getMissingRequirements(item);
   if (missing.length) return { label: "LOCKED", className: "gate locked", title: `Needs ${missing.join(" and ")}` };
-  if (profile.strictPerkGates && profile.autoTrackPoints && profile.unspentPoints < 1) {
+  if (profile.strictPerkGates && profile.autoTrackPoints && getActualUnspentPoints(profile) < 1) {
     return { label: "NO PTS", className: "gate locked", title: "No unspent perk point tracked." };
   }
 
@@ -480,7 +497,7 @@ function getPerkNextLine(item, profile) {
     return `Rank ${item.currentRank}/${item.perk.levels.length} - next needs ${missing.join(" and ")}`;
   }
 
-  if (profile.strictPerkGates && profile.autoTrackPoints && profile.unspentPoints < 1) {
+  if (profile.strictPerkGates && profile.autoTrackPoints && getActualUnspentPoints(profile) < 1) {
     return `Rank ${item.currentRank}/${item.perk.levels.length} - next ready, no unspent point`;
   }
 
@@ -645,6 +662,8 @@ function App() {
   const perkItems = useMemo(() => getPerkItems(profile, effectiveSpecial), [profile, effectiveSpecial]);
   const totalPerkRanks = useMemo(() => getSpentPerkRanks(profile), [profile]);
   const earnedPerkPoints = useMemo(() => getEarnedPerkPoints(profile), [profile]);
+  const statPointsSpent = useMemo(() => getStatPointsSpent(profile), [profile]);
+  const actualUnspentPoints = useMemo(() => getActualUnspentPoints(profile), [profile]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
@@ -672,7 +691,22 @@ function App() {
   };
 
   const setSpecial = (statId, value) => {
-    patchProfile({ special: { ...profile.special, [statId]: clampNumber(value, 1, 10) } });
+    setProfile((current) => {
+      const normalized = normalizeProfile(current);
+      const oldValue = normalized.special[statId] || 1;
+      const newValue = clampNumber(value, 1, 10);
+      const delta = newValue - oldValue;
+
+      const nextUnspent = normalized.autoTrackPoints
+        ? clampNumber(normalized.unspentPoints - delta, 0, 999)
+        : normalized.unspentPoints;
+
+      return normalizeProfile({
+        ...normalized,
+        special: { ...normalized.special, [statId]: newValue },
+        unspentPoints: nextUnspent,
+      });
+    });
   };
 
   const setBobblehead = (statId, checked) => {
@@ -737,7 +771,7 @@ function App() {
 
     let buildText = `BUILD DATA FOR AI ANALYSIS\n`;
     buildText += `============================\n\n`;
-    buildText += `Level: ${profile.level} | Difficulty: ${profile.difficulty} | Unspent Points: ${profile.unspentPoints}\n`;
+    buildText += `Level: ${profile.level} | Difficulty: ${profile.difficulty} | Unspent Points: ${actualUnspentPoints} | Spent on SPECIAL: ${statPointsSpent}\n`;
     buildText += `SPECIAL (Base): ${baseSpecial}\n`;
     buildText += `SPECIAL (Effective): ${effectiveStr}\n\n`;
     buildText += `PERKS UNLOCKED (${unlockedPerks.length}):\n`;
@@ -855,7 +889,7 @@ function App() {
           </div>
           <div>
             <span>POINTS</span>
-            <strong>{profile.unspentPoints}</strong>
+            <strong>{actualUnspentPoints}</strong>
           </div>
           <div>
             <span>SPENT RANKS</span>
@@ -918,21 +952,26 @@ function App() {
                 <label className="field">
                   <span>Unspent perk points</span>
                   <div className="stepper">
-                    <button type="button" onClick={() => patchProfile({ unspentPoints: profile.unspentPoints - 1 })}>
+                    <button type="button" disabled={profile.autoTrackPoints} onClick={() => patchProfile({ unspentPoints: profile.unspentPoints - 1 })}>
                       -
                     </button>
                     <input
                       inputMode="numeric"
                       min="0"
                       type="number"
-                      value={profile.unspentPoints}
+                      disabled={profile.autoTrackPoints}
+                      value={profile.autoTrackPoints ? actualUnspentPoints : profile.unspentPoints}
                       onChange={(event) => patchProfile({ unspentPoints: event.target.value })}
                     />
-                    <button type="button" onClick={() => patchProfile({ unspentPoints: profile.unspentPoints + 1 })}>
+                    <button type="button" disabled={profile.autoTrackPoints} onClick={() => patchProfile({ unspentPoints: profile.unspentPoints + 1 })}>
                       +
                     </button>
                   </div>
-                  <em className="field-note">{profile.autoTrackPoints ? "Auto points on" : "Manual points"}</em>
+                  <em className="field-note">
+                    {profile.autoTrackPoints
+                      ? `Auto: earned ${earnedPerkPoints} − perks ${totalPerkRanks} − SPECIAL ${statPointsSpent} = ${actualUnspentPoints}`
+                      : "Manual points"}
+                  </em>
                 </label>
                 <label className="toggle-field">
                   <input
@@ -1123,7 +1162,7 @@ function App() {
                 </button>
               </div>
               <p className="quiet-copy">
-                Earned {earnedPerkPoints}. Spent {totalPerkRanks}. Unspent {profile.unspentPoints}.
+                Earned {earnedPerkPoints}. Spent on perks {totalPerkRanks}. Spent on SPECIAL {statPointsSpent}. Unspent {actualUnspentPoints}.
               </p>
             </aside>
 
@@ -1150,7 +1189,7 @@ function App() {
                         {statItems.map((item) => {
                           const gate = getPerkGate(item, profile);
                           const missing = getMissingRequirements(item);
-                          const isLocked = missing.length > 0 || (profile.strictPerkGates && profile.autoTrackPoints && profile.unspentPoints < 1 && !item.maxed);
+                          const isLocked = missing.length > 0 || (profile.strictPerkGates && profile.autoTrackPoints && actualUnspentPoints < 1 && !item.maxed);
 
                           return (
                             <div
