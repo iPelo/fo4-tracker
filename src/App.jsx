@@ -692,6 +692,62 @@ function App() {
     setChatInput("");
   };
 
+  const exportBuildData = () => {
+    const baseSpecial = Object.entries(profile.special)
+      .map(([id, val]) => `${STAT_BY_ID[id].abbr} ${val}`)
+      .join(" | ");
+    const effectiveStr = Object.entries(effectiveSpecial)
+      .map(([id, val]) => `${STAT_BY_ID[id].abbr} ${val}`)
+      .join(" | ");
+
+    const unlockedPerks = perkItems.filter((item) => item.currentRank > 0).sort((a, b) => {
+      const statDiff = STATS.findIndex((s) => s.id === a.perk.stat) - STATS.findIndex((s) => s.id === b.perk.stat);
+      return statDiff !== 0 ? statDiff : a.perk.name.localeCompare(b.perk.name);
+    });
+
+    let buildText = `BUILD DATA FOR AI ANALYSIS\n`;
+    buildText += `============================\n\n`;
+    buildText += `Level: ${profile.level} | Difficulty: ${profile.difficulty} | Unspent Points: ${profile.unspentPoints}\n`;
+    buildText += `SPECIAL (Base): ${baseSpecial}\n`;
+    buildText += `SPECIAL (Effective): ${effectiveStr}\n\n`;
+    buildText += `PERKS UNLOCKED (${unlockedPerks.length}):\n`;
+
+    const perksbystat = Object.fromEntries(STATS.map((s) => [s.id, []]));
+    unlockedPerks.forEach((item) => perksbystat[item.perk.stat].push(item));
+
+    STATS.forEach((stat) => {
+      if (perksbystat[stat.id].length > 0) {
+        buildText += `\n${stat.name}:\n`;
+        perksbystat[stat.id].forEach((item) => {
+          buildText += `  - ${item.perk.name} (Rank ${item.currentRank}/${item.perk.levels.length})\n`;
+        });
+      }
+    });
+
+    if (profile.gearBonuses) {
+      buildText += `\nGEAR BONUSES: ${profile.gearBonuses}\n`;
+    }
+    if (profile.playstyle) {
+      buildText += `PLAYSTYLE: ${profile.playstyle}\n`;
+    }
+    if (profile.companion) {
+      buildText += `COMPANION: ${profile.companion}\n`;
+    }
+    if (profile.powerArmor) {
+      buildText += `POWER ARMOR: Yes\n`;
+    }
+    if (profile.notes) {
+      buildText += `NOTES: ${profile.notes}\n`;
+    }
+
+    buildText += `\n============================\n`;
+    buildText += `Paste this into ChatGPT/Gemini and ask: "What perks should I pick next? Why?"\n`;
+
+    navigator.clipboard.writeText(buildText).then(() => {
+      alert("Build data copied to clipboard! Paste it into ChatGPT/Gemini for AI advice.");
+    });
+  };
+
   const runLevelAdvisor = () => {
     setLevelReport(
       buildAdvisorReply(profile, {
@@ -1023,6 +1079,9 @@ function App() {
                   />
                   <span>Auto spend</span>
                 </label>
+                <button className="primary-action" type="button" onClick={exportBuildData}>
+                  Share Build to AI
+                </button>
               </div>
               <p className="quiet-copy">
                 Earned {earnedPerkPoints}. Spent {totalPerkRanks}. Unspent {profile.unspentPoints}.
@@ -1048,16 +1107,61 @@ function App() {
                       <em>{unlocked} unlocked</em>
                     </button>
                     {expandedStats[stat.id] && (
-                      <div className="perk-list">
+                      <div className="perk-grid">
                         {statItems.map((item) => {
                           const gate = getPerkGate(item, profile);
+                          const missing = getMissingRequirements(item);
+                          const isLocked = missing.length > 0 || (profile.strictPerkGates && profile.autoTrackPoints && profile.unspentPoints < 1 && !item.maxed);
+
                           return (
-                            <div className={item.currentRank ? "perk-row owned" : "perk-row"} key={item.perk.name}>
-                              <div className="perk-copy">
-                                <strong>{item.perk.name}</strong>
-                                <span>{getPerkNextLine(item, profile)}</span>
+                            <div
+                              className={`perk-card ${item.currentRank ? "owned" : ""} ${isLocked ? "locked" : ""}`}
+                              key={item.perk.name}
+                              title={item.perk.summary}
+                            >
+                              <div className="perk-card-name">{item.perk.name}</div>
+
+                              <div className="perk-card-stars">
+                                {Array.from({ length: item.perk.levels.length }, (_, index) => (
+                                  <span
+                                    key={index}
+                                    className={`perk-card-star ${index < item.currentRank ? "" : "empty"}`}
+                                  >
+                                    ★
+                                  </span>
+                                ))}
                               </div>
-                              <div className="rank-dots" aria-label={`${item.perk.name} rank`}>
+
+                              <div className="perk-card-reqs">
+                                <span className={item.statValue >= item.perk.specialReq ? "perk-card-req" : "perk-card-req unmet"}>
+                                  {stat.abbr} {item.perk.specialReq}
+                                </span>
+                                <span className={profile.level >= (item.nextRank <= item.perk.levels.length ? item.perk.levels[item.nextRank - 1] : 1) ? "perk-card-req" : "perk-card-req unmet"}>
+                                  Lvl {item.nextRank <= item.perk.levels.length ? item.perk.levels[item.nextRank - 1] : "—"}
+                                </span>
+                              </div>
+
+                              <div className="perk-card-tooltip">
+                                <strong>{item.perk.name}</strong>
+                                <em>{item.perk.summary}</em>
+                                <div style={{ marginTop: "4px", fontSize: "0.7rem" }}>
+                                  Rank: {item.currentRank}/{item.perk.levels.length}
+                                </div>
+                                {isLocked && missing.length > 0 && (
+                                  <div style={{ color: "var(--amber)", marginTop: "4px" }}>
+                                    Locked: needs {missing.join(", ")}
+                                  </div>
+                                )}
+                                <div style={{ marginTop: "6px", color: "var(--muted)", fontSize: "0.65rem" }}>
+                                  Click stars to rank up/down
+                                </div>
+                              </div>
+
+                              <div
+                                className="rank-dots"
+                                style={{ position: "absolute", bottom: "8px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "4px", pointerEvents: "auto" }}
+                                aria-label={`${item.perk.name} rank`}
+                              >
                                 {Array.from({ length: item.perk.levels.length }, (_, index) => {
                                   const rank = index + 1;
                                   const rankState = getRankButtonState(item, rank, profile);
@@ -1067,15 +1171,15 @@ function App() {
                                       disabled={!rankState.enabled}
                                       key={rank}
                                       type="button"
-                                      title={`${rankState.label} Requirement: ${stat.abbr} ${item.perk.specialReq}, Level ${item.perk.levels[index]}.`}
-                                      onClick={() => setPerkRank(item, item.currentRank === rank ? rank - 1 : rank)}
+                                      title={rankState.label}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setPerkRank(item, item.currentRank === rank ? rank - 1 : rank);
+                                      }}
                                     />
                                   );
                                 })}
                               </div>
-                              <span className={gate.className} title={gate.title}>
-                                {gate.label}
-                              </span>
                             </div>
                           );
                         })}
