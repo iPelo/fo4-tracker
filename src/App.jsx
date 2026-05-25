@@ -524,6 +524,36 @@ function findBlockedRelevant(items, weights, promptText) {
     .slice(0, 3);
 }
 
+function parseAIRecommendations(text) {
+  const match = text.match(/===FO4_RECOMMENDATIONS===([\s\S]*?)===END===/);
+  if (!match) return null;
+
+  const lines = match[1].trim().split('\n').filter(line => line.trim());
+  const recommendations = [];
+
+  for (const line of lines) {
+    const parts = line.split('|').map(p => p.trim());
+    if (parts.length >= 2) {
+      const perkName = parts[0];
+      const rankStr = parts[1];
+      const reason = parts[2] || '';
+
+      let targetRank = 0;
+      if (rankStr.includes('Rank')) {
+        targetRank = parseInt(rankStr.match(/\d+/)?.[0] || '0') || 0;
+      } else if (rankStr.startsWith('+')) {
+        targetRank = parseInt(rankStr) || 0;
+      }
+
+      if (perkName && targetRank > 0) {
+        recommendations.push({ name: perkName, rank: targetRank, reason });
+      }
+    }
+  }
+
+  return recommendations.length > 0 ? recommendations : null;
+}
+
 function buildAdvisorReply(profile, { mode, prompt = "", focus = "Not sure yet", concern = "" }) {
   const effective = getEffectiveSpecial(profile);
   const items = getPerkItems(profile, effective);
@@ -740,11 +770,20 @@ function App() {
       buildText += `NOTES: ${profile.notes}\n`;
     }
 
-    buildText += `\n============================\n`;
-    buildText += `Paste this into ChatGPT/Gemini and ask: "What perks should I pick next? Why?"\n`;
+    buildText += `\n============================\n\n`;
+    buildText += `INSTRUCTIONS:\n`;
+    buildText += `1. Paste this into ChatGPT/Gemini\n`;
+    buildText += `2. Ask any questions about your build\n`;
+    buildText += `3. When done, tell the AI:\n\n`;
+    buildText += `"Give me your final recommendations in this exact format:\n`;
+    buildText += `===FO4_RECOMMENDATIONS===\n`;
+    buildText += `Perk Name|Rank 1|Brief reason\n`;
+    buildText += `Perk Name|Rank 2|Brief reason\n`;
+    buildText += `===END==="\n\n`;
+    buildText += `4. Copy the AI's response and paste it into the website\n`;
 
     navigator.clipboard.writeText(buildText).then(() => {
-      alert("Build data copied to clipboard! Paste it into ChatGPT/Gemini for AI advice.");
+      alert("Build data + format instructions copied! Paste into ChatGPT, ask for advice, then copy final response back.");
     });
   };
 
@@ -1194,103 +1233,92 @@ function App() {
         )}
 
         {tab === "advisor" && (
-          <div className="advisor-layout">
-            <section className="panel advisor-controls">
+          <div className="ai-advisor-layout">
+            <section className="panel">
               <div className="panel-heading">
-                <h2>Advisor</h2>
-                <span>Spoiler lock active</span>
+                <h2>AI Advisor Response</h2>
+                <span>Paste formatted response here</span>
               </div>
-              <div className="segmented">
-                <button
-                  className={advisorMode === "levelup" ? "active" : ""}
-                  type="button"
-                  onClick={() => setAdvisorMode("levelup")}
-                >
-                  I leveled up
-                </button>
-                <button
-                  className={advisorMode === "chat" ? "active" : ""}
-                  type="button"
-                  onClick={() => setAdvisorMode("chat")}
-                >
-                  Free chat
+              <div className="advisor-form">
+                <p className="field-note">
+                  1. Click "Share Build to AI" in the Perks tab<br/>
+                  2. Ask ChatGPT/Gemini for advice<br/>
+                  3. Tell AI to format response as shown<br/>
+                  4. Copy response and paste below
+                </p>
+                <textarea
+                  value={chatInput}
+                  onChange={(event) => setChatInput(event.target.value)}
+                  placeholder="Paste the AI response with ===FO4_RECOMMENDATIONS=== format here..."
+                  style={{ minHeight: "120px" }}
+                />
+                <button className="primary-action" type="button" onClick={() => {
+                  const recs = parseAIRecommendations(chatInput);
+                  if (recs) {
+                    setMessages([{ role: "advisor", content: JSON.stringify(recs) }]);
+                  } else {
+                    alert("Format not recognized. Make sure the response contains:\n===FO4_RECOMMENDATIONS===\nPerk|Rank|Reason\n===END===");
+                  }
+                }}>
+                  Parse Recommendations
                 </button>
               </div>
-
-              {advisorMode === "levelup" ? (
-                <div className="advisor-form">
-                  <label className="field">
-                    <span>What matters this level?</span>
-                    <select value={levelFocus} onChange={(event) => setLevelFocus(event.target.value)}>
-                      {LEVEL_FOCUS.map((focus) => (
-                        <option key={focus}>{focus}</option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="field">
-                    <span>Anything that felt weak?</span>
-                    <textarea
-                      value={levelConcern}
-                      onChange={(event) => setLevelConcern(event.target.value)}
-                      placeholder="Damage, carry weight, hacking, dying too fast..."
-                    />
-                  </label>
-                  <button className="primary-action" type="button" onClick={runLevelAdvisor}>
-                    Run level-up check
-                  </button>
-                </div>
-              ) : (
-                <div className="advisor-form">
-                  <div className="quick-prompts">
-                    {QUICK_PROMPTS.map((prompt) => (
-                      <button key={prompt} type="button" onClick={() => sendChat(prompt)}>
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="chat-input-row">
-                    <input
-                      value={chatInput}
-                      onChange={(event) => setChatInput(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") sendChat();
-                      }}
-                      placeholder="Ask for mechanic-only advice"
-                    />
-                    <button type="button" onClick={() => sendChat()}>
-                      Send
-                    </button>
-                  </div>
-                </div>
-              )}
             </section>
 
-            <section className="panel advisor-output">
-              {advisorMode === "levelup" ? (
-                <>
-                  <div className="panel-heading">
-                    <h2>Level-Up Readout</h2>
-                    <span>{levelReport ? "Generated" : "Waiting"}</span>
-                  </div>
-                  <pre>{levelReport || "Pick a focus, add any problem you noticed, then run the check."}</pre>
-                </>
-              ) : (
-                <>
-                  <div className="panel-heading">
-                    <h2>Free Chat</h2>
-                    <span>Mechanics only</span>
-                  </div>
-                  <div className="chat-log" ref={chatRef}>
-                    {messages.map((message, index) => (
-                      <article className={message.role === "user" ? "message user" : "message advisor"} key={index}>
-                        <span>{message.role === "user" ? "YOU" : "ADVISOR"}</span>
-                        <pre>{message.content}</pre>
-                      </article>
-                    ))}
-                  </div>
-                </>
-              )}
-            </section>
+            {messages.length > 0 && messages[0].role === "advisor" && (() => {
+              try {
+                const recommendations = JSON.parse(messages[0].content);
+                const perksByName = Object.fromEntries(ALL_PERKS.map(p => [p.name, p]));
+
+                return (
+                  <section className="panel">
+                    <div className="panel-heading">
+                      <h2>Suggested Build Path</h2>
+                      <span>{recommendations.length} recommended perks</span>
+                    </div>
+                    <div style={{ display: "grid", gap: "12px" }}>
+                      {recommendations.map((rec, index) => {
+                        const perk = perksByName[rec.name];
+                        const owned = profile.perks[rec.name] || 0;
+                        const isBetter = rec.rank > owned;
+
+                        return (
+                          <div
+                            key={index}
+                            style={{
+                              padding: "12px",
+                              border: `1px solid ${isBetter ? "rgba(212, 165, 116, 0.4)" : "rgba(212, 200, 181, 0.2)"}`,
+                              background: isBetter ? "rgba(212, 165, 116, 0.08)" : "rgba(42, 37, 32, 0.3)",
+                              borderRadius: "4px",
+                              borderLeft: isBetter ? "4px solid rgba(212, 165, 116, 0.6)" : "4px solid rgba(212, 200, 181, 0.2)"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", marginBottom: "6px" }}>
+                              <strong style={{ color: "var(--green-200)", fontSize: "1rem" }}>
+                                {index + 1}. {rec.name}
+                              </strong>
+                              <span style={{ color: "var(--amber)", fontSize: "0.9rem", fontWeight: "bold" }}>
+                                Rank {owned}/{rec.rank}
+                              </span>
+                            </div>
+                            <p style={{ color: "var(--green-300)", fontSize: "0.85rem", margin: "4px 0", lineHeight: "1.4" }}>
+                              {rec.reason}
+                            </p>
+                            {perk && (
+                              <p style={{ color: "var(--muted)", fontSize: "0.75rem", margin: "6px 0 0 0", fontStyle: "italic" }}>
+                                {perk.summary}
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              } catch (e) {
+                return null;
+              }
+            })()}
           </div>
         )}
 

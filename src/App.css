@@ -1,25 +1,25 @@
 .pipboy-shell {
-  --green-900: #071008;
-  --green-850: #0a160b;
-  --green-800: #0d1e0d;
-  --green-700: #153616;
-  --green-600: #225522;
-  --green-500: #3f8a35;
-  --green-300: #8ce66e;
-  --green-200: #bafc8f;
-  --amber: #e1b85b;
+  --green-900: #2a2520;
+  --green-850: #3a3228;
+  --green-800: #4a4630;
+  --green-700: #5a5238;
+  --green-600: #8b7f6d;
+  --green-500: #b5a895;
+  --green-300: #d4c8b5;
+  --green-200: #e8dcc8;
+  --amber: #d4a574;
   --red: #d86d5e;
-  --muted: #638b55;
-  --border: rgba(140, 230, 110, 0.22);
-  --glow: 0 0 20px rgba(112, 255, 92, 0.16);
+  --muted: #8b7f6d;
+  --border: rgba(212, 200, 181, 0.18);
+  --glow: 0 0 20px rgba(212, 200, 181, 0.12);
 
   position: relative;
   min-height: 100svh;
   overflow: hidden;
   color: var(--green-300);
   background:
-    radial-gradient(circle at 50% 12%, rgba(72, 156, 52, 0.18), transparent 32rem),
-    linear-gradient(145deg, #040704, var(--green-900) 42%, #020402);
+    radial-gradient(circle at 50% 12%, rgba(139, 127, 109, 0.12), transparent 32rem),
+    linear-gradient(145deg, #2a2520, var(--green-900) 42%, #1f1a16);
   font-family: "Courier New", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -91,8 +91,8 @@
   min-width: 0;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  background: rgba(7, 16, 8, 0.72);
-  box-shadow: inset 0 0 20px rgba(32, 85, 32, 0.18);
+  background: rgba(42, 37, 32, 0.72);
+  box-shadow: inset 0 0 20px rgba(139, 127, 109, 0.08);
 }
 
 .status-grid span,
@@ -163,7 +163,7 @@ textarea:focus-visible {
 .tab-bar button.active,
 .segmented button.active {
   color: var(--green-200);
-  background: linear-gradient(180deg, rgba(63, 138, 53, 0.28), rgba(63, 138, 53, 0.08));
+  background: linear-gradient(180deg, rgba(139, 127, 109, 0.28), rgba(139, 127, 109, 0.08));
   box-shadow: inset 0 -2px 0 var(--green-300);
 }
 
@@ -172,9 +172,9 @@ textarea:focus-visible {
   padding: 14px;
   border: 1px solid var(--border);
   background:
-    linear-gradient(rgba(7, 16, 8, 0.88), rgba(7, 16, 8, 0.94)),
-    radial-gradient(circle at top right, rgba(225, 184, 91, 0.12), transparent 24rem);
-  box-shadow: inset 0 0 60px rgba(63, 138, 53, 0.14);
+    linear-gradient(rgba(42, 37, 32, 0.88), rgba(42, 37, 32, 0.94)),
+    radial-gradient(circle at top right, rgba(212, 165, 116, 0.08), transparent 24rem);
+  box-shadow: inset 0 0 60px rgba(139, 127, 109, 0.08);
 }
 
 .section-grid {
@@ -187,8 +187,8 @@ textarea:focus-visible {
   min-width: 0;
   padding: 14px;
   border: 1px solid var(--border);
-  background: rgba(10, 22, 11, 0.72);
-  box-shadow: inset 0 0 28px rgba(63, 138, 53, 0.08);
+  background: rgba(42, 37, 32, 0.72);
+  box-shadow: inset 0 0 28px rgba(139, 127, 109, 0.06);
 }
 
 .panel-wide {
@@ -201,7 +201,7 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
-  border-bottom: 1px solid rgba(140, 230, 110, 0.12);
+  border-bottom: 1px solid rgba(212, 200, 181, 0.12);
   padding-bottom: 9px;
 }
 
@@ -241,7 +241,7 @@ textarea:focus-visible {
   flex-direction: row;
   align-items: center;
   padding: 0 10px 8px;
-  border: 1px solid rgba(140, 230, 110, 0.16);
+  border: 1px solid rgba(212, 200, 181, 0.16);
   background: rgba(7, 16, 8, 0.55);
 }
 
@@ -252,19 +252,19 @@ input[type="checkbox"] {
   min-height: 18px;
   margin: 0;
   padding: 0;
-  border: 1px solid rgba(140, 230, 110, 0.48);
+  border: 1px solid rgba(212, 200, 181, 0.48);
   border-radius: 2px;
-  background: rgba(4, 7, 4, 0.82);
-  box-shadow: inset 0 0 8px rgba(63, 138, 53, 0.12);
+  background: rgba(42, 37, 32, 0.82);
+  box-shadow: inset 0 0 8px rgba(139, 127, 109, 0.12);
 }
 
 input[type="checkbox"]:checked {
   border-color: var(--green-200);
   background:
-    linear-gradient(45deg, transparent 43%, #061006 43%, #061006 57%, transparent 57%),
-    linear-gradient(-45deg, transparent 43%, #061006 43%, #061006 57%, transparent 57%),
-    var(--green-300);
-  box-shadow: 0 0 10px rgba(140, 230, 110, 0.3);
+    linear-gradient(45deg, transparent 43%, #2a2520 43%, #2a2520 57%, transparent 57%),
+    linear-gradient(-45deg, transparent 43%, #2a2520 43%, #2a2520 57%, transparent 57%),
+    var(--amber);
+  box-shadow: 0 0 10px rgba(212, 200, 181, 0.2);
 }
 
 input,
@@ -272,10 +272,10 @@ select,
 textarea {
   width: 100%;
   min-height: 38px;
-  border: 1px solid rgba(140, 230, 110, 0.28);
+  border: 1px solid rgba(212, 200, 181, 0.28);
   border-radius: 3px;
   color: var(--green-200);
-  background: rgba(4, 7, 4, 0.78);
+  background: rgba(42, 37, 32, 0.78);
 }
 
 input,
@@ -303,7 +303,7 @@ textarea::placeholder {
 .stepper button,
 .chat-input-row button,
 .primary-action {
-  border: 1px solid rgba(140, 230, 110, 0.36);
+  border: 1px solid rgba(212, 200, 181, 0.36);
   color: var(--green-200);
   background: rgba(34, 85, 34, 0.52);
 }
@@ -334,7 +334,7 @@ textarea::placeholder {
   gap: 12px;
   min-height: 52px;
   padding: 8px;
-  border: 1px solid rgba(140, 230, 110, 0.12);
+  border: 1px solid rgba(212, 200, 181, 0.12);
   background: rgba(4, 7, 4, 0.38);
 }
 
@@ -352,14 +352,14 @@ textarea::placeholder {
 
 .pip-track button {
   height: 20px;
-  border: 1px solid rgba(140, 230, 110, 0.18);
+  border: 1px solid rgba(212, 200, 181, 0.18);
   background: rgba(7, 16, 8, 0.88);
 }
 
 .pip-track button.lit {
   border-color: rgba(186, 252, 143, 0.5);
   background: linear-gradient(180deg, var(--green-300), var(--green-500));
-  box-shadow: 0 0 9px rgba(140, 230, 110, 0.28);
+  box-shadow: 0 0 9px rgba(212, 200, 181, 0.28);
 }
 
 .mini-check {
@@ -416,7 +416,7 @@ textarea::placeholder {
 
 .secondary-action {
   min-height: 42px;
-  border: 1px solid rgba(140, 230, 110, 0.24);
+  border: 1px solid rgba(212, 200, 181, 0.24);
   color: var(--green-300);
   background: rgba(4, 7, 4, 0.42);
   text-transform: uppercase;
@@ -448,7 +448,7 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   padding: 8px 10px;
-  border: 1px solid rgba(140, 230, 110, 0.16);
+  border: 1px solid rgba(212, 200, 181, 0.16);
   background: rgba(4, 7, 4, 0.42);
 }
 
@@ -480,7 +480,7 @@ textarea::placeholder {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid rgba(140, 230, 110, 0.14);
+  border: 1px solid rgba(212, 200, 181, 0.14);
   color: var(--muted);
   background: rgba(4, 7, 4, 0.32);
   font-size: 0.78rem;
@@ -510,10 +510,10 @@ textarea::placeholder {
 
 @keyframes perkGlow {
   0%, 100% {
-    box-shadow: 0 0 0 rgba(140, 230, 110, 0.3), inset 0 0 10px rgba(63, 138, 53, 0.08);
+    box-shadow: 0 0 0 rgba(212, 200, 181, 0.3), inset 0 0 10px rgba(139, 127, 109, 0.08);
   }
   50% {
-    box-shadow: 0 0 15px rgba(140, 230, 110, 0.2), inset 0 0 10px rgba(63, 138, 53, 0.12);
+    box-shadow: 0 0 15px rgba(212, 200, 181, 0.2), inset 0 0 10px rgba(139, 127, 109, 0.12);
   }
 }
 
@@ -565,9 +565,9 @@ textarea::placeholder {
   gap: 6px;
   min-height: 160px;
   padding: 8px 8px 8px 8px;
-  border: 1px solid rgba(140, 230, 110, 0.24);
+  border: 1px solid rgba(212, 200, 181, 0.24);
   border-radius: 4px;
-  background: rgba(7, 16, 8, 0.6);
+  background: rgba(42, 37, 32, 0.6);
   cursor: pointer;
   animation: perkCardEnter 0.3s ease-out;
   transition: all 0.2s ease;
@@ -582,28 +582,28 @@ textarea::placeholder {
 }
 
 .perk-card:hover {
-  border-color: rgba(140, 230, 110, 0.48);
-  background: rgba(15, 30, 16, 0.8);
+  border-color: rgba(212, 200, 181, 0.48);
+  background: rgba(52, 47, 42, 0.8);
   transform: scale(1.03);
-  box-shadow: 0 0 12px rgba(140, 230, 110, 0.15), inset 0 0 10px rgba(63, 138, 53, 0.1);
+  box-shadow: 0 0 12px rgba(212, 200, 181, 0.12), inset 0 0 10px rgba(139, 127, 109, 0.1);
 }
 
 .perk-card.owned {
-  border-color: rgba(140, 230, 110, 0.4);
-  background: rgba(63, 138, 53, 0.15);
-  box-shadow: 0 0 8px rgba(140, 230, 110, 0.1), inset 0 0 10px rgba(63, 138, 53, 0.08);
+  border-color: rgba(212, 165, 116, 0.4);
+  background: rgba(212, 165, 116, 0.1);
+  box-shadow: 0 0 8px rgba(212, 165, 116, 0.1), inset 0 0 10px rgba(212, 165, 116, 0.08);
 }
 
 .perk-card.locked {
   opacity: 0.6;
-  border-color: rgba(225, 184, 91, 0.2);
-  background: rgba(85, 65, 20, 0.1);
+  border-color: rgba(212, 165, 116, 0.2);
+  background: rgba(85, 65, 20, 0.08);
 }
 
 .perk-card.locked:hover {
-  border-color: rgba(225, 184, 91, 0.3);
-  background: rgba(85, 65, 20, 0.15);
-  box-shadow: 0 0 8px rgba(225, 184, 91, 0.08), inset 0 0 10px rgba(85, 65, 20, 0.08);
+  border-color: rgba(212, 165, 116, 0.3);
+  background: rgba(85, 65, 20, 0.12);
+  box-shadow: 0 0 8px rgba(212, 165, 116, 0.08), inset 0 0 10px rgba(85, 65, 20, 0.08);
 }
 
 .perk-card-name {
@@ -633,7 +633,7 @@ textarea::placeholder {
 }
 
 .perk-card-star.empty {
-  color: rgba(140, 230, 110, 0.2);
+  color: rgba(212, 200, 181, 0.2);
   opacity: 0.5;
 }
 
@@ -649,7 +649,7 @@ textarea::placeholder {
 .perk-card-req {
   display: inline-block;
   padding: 2px 4px;
-  border: 1px solid rgba(140, 230, 110, 0.2);
+  border: 1px solid rgba(212, 200, 181, 0.2);
   border-radius: 2px;
   background: rgba(4, 7, 4, 0.4);
 }
@@ -668,7 +668,7 @@ textarea::placeholder {
   min-width: 200px;
   max-width: 250px;
   padding: 10px;
-  border: 1px solid rgba(140, 230, 110, 0.4);
+  border: 1px solid rgba(212, 200, 181, 0.4);
   border-radius: 4px;
   background: rgba(4, 7, 4, 0.95);
   color: var(--green-300);
@@ -738,7 +738,7 @@ textarea::placeholder {
   width: 12px;
   height: 12px;
   padding: 0;
-  border: 1px solid rgba(140, 230, 110, 0.32);
+  border: 1px solid rgba(212, 200, 181, 0.32);
   border-radius: 50%;
   background: transparent;
   transition: all 0.15s ease;
@@ -746,12 +746,12 @@ textarea::placeholder {
 }
 
 .rank-dots button:hover:not(:disabled) {
-  border-color: rgba(140, 230, 110, 0.6);
-  box-shadow: 0 0 6px rgba(140, 230, 110, 0.2);
+  border-color: rgba(212, 200, 181, 0.6);
+  box-shadow: 0 0 6px rgba(212, 200, 181, 0.2);
 }
 
 .perk-card-ranks {
-  border-top: 1px solid rgba(140, 230, 110, 0.12);
+  border-top: 1px solid rgba(212, 200, 181, 0.12);
   margin: 0 -8px -8px -8px;
   padding: 6px 8px;
 }
@@ -759,7 +759,7 @@ textarea::placeholder {
 .rank-dots button.filled {
   border-color: var(--green-300);
   background: var(--green-300);
-  box-shadow: 0 0 8px rgba(140, 230, 110, 0.3);
+  box-shadow: 0 0 8px rgba(212, 200, 181, 0.3);
 }
 
 .rank-dots button.blocked {
@@ -775,7 +775,7 @@ textarea::placeholder {
   justify-self: end;
   width: 58px;
   padding: 3px 0;
-  border: 1px solid rgba(140, 230, 110, 0.18);
+  border: 1px solid rgba(212, 200, 181, 0.18);
   color: var(--green-300);
   font-size: 0.7rem;
   text-align: center;
@@ -797,11 +797,17 @@ textarea::placeholder {
   min-height: 480px;
 }
 
+.ai-advisor-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
 .segmented {
   display: grid;
   grid-template-columns: 1fr 1fr;
   margin-bottom: 14px;
-  border: 1px solid rgba(140, 230, 110, 0.22);
+  border: 1px solid rgba(212, 200, 181, 0.22);
 }
 
 .advisor-form {
@@ -831,7 +837,7 @@ textarea::placeholder {
 .advisor-output > pre {
   min-height: 380px;
   padding: 12px;
-  border: 1px solid rgba(140, 230, 110, 0.12);
+  border: 1px solid rgba(212, 200, 181, 0.12);
   background: rgba(4, 7, 4, 0.42);
 }
 
@@ -843,7 +849,7 @@ textarea::placeholder {
 
 .quick-prompts button {
   padding: 7px 9px;
-  border: 1px solid rgba(140, 230, 110, 0.24);
+  border: 1px solid rgba(212, 200, 181, 0.24);
   color: var(--green-300);
   background: rgba(4, 7, 4, 0.42);
   font-size: 0.78rem;
@@ -867,7 +873,7 @@ textarea::placeholder {
 .message {
   max-width: 92%;
   padding: 10px;
-  border: 1px solid rgba(140, 230, 110, 0.16);
+  border: 1px solid rgba(212, 200, 181, 0.16);
   background: rgba(4, 7, 4, 0.44);
 }
 
@@ -894,7 +900,7 @@ textarea::placeholder {
   gap: 10px;
   min-height: 44px;
   padding: 8px 10px;
-  border: 1px solid rgba(140, 230, 110, 0.14);
+  border: 1px solid rgba(212, 200, 181, 0.14);
   background: rgba(4, 7, 4, 0.32);
 }
 
