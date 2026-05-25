@@ -271,7 +271,8 @@ function getStatPointsSpent(profile) {
 }
 
 function getActualUnspentPoints(profile) {
-  if (!profile.autoTrackPoints) return profile.unspentPoints;
+  // Always derive: unspent = earned (level - 1) - perks taken - SPECIAL points spent above starting 28.
+  // This is the truth regardless of the autoTrack flag; the stored unspentPoints is only a legacy override.
   const earned = getEarnedPerkPoints(profile);
   const spentOnPerks = getSpentPerkRanks(profile);
   const spentOnStats = getStatPointsSpent(profile);
@@ -952,25 +953,18 @@ function App() {
                 <label className="field">
                   <span>Unspent perk points</span>
                   <div className="stepper">
-                    <button type="button" disabled={profile.autoTrackPoints} onClick={() => patchProfile({ unspentPoints: profile.unspentPoints - 1 })}>
-                      -
-                    </button>
+                    <button type="button" disabled>−</button>
                     <input
                       inputMode="numeric"
-                      min="0"
                       type="number"
-                      disabled={profile.autoTrackPoints}
-                      value={profile.autoTrackPoints ? actualUnspentPoints : profile.unspentPoints}
-                      onChange={(event) => patchProfile({ unspentPoints: event.target.value })}
+                      disabled
+                      value={actualUnspentPoints}
+                      readOnly
                     />
-                    <button type="button" disabled={profile.autoTrackPoints} onClick={() => patchProfile({ unspentPoints: profile.unspentPoints + 1 })}>
-                      +
-                    </button>
+                    <button type="button" disabled>+</button>
                   </div>
                   <em className="field-note">
-                    {profile.autoTrackPoints
-                      ? `Auto: earned ${earnedPerkPoints} − perks ${totalPerkRanks} − SPECIAL ${statPointsSpent} = ${actualUnspentPoints}`
-                      : "Manual points"}
+                    Auto: earned {earnedPerkPoints} − perks {totalPerkRanks} − SPECIAL {statPointsSpent} = {actualUnspentPoints}
                   </em>
                 </label>
                 <label className="toggle-field">
