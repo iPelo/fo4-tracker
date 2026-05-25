@@ -562,15 +562,23 @@ textarea::placeholder {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   min-height: 160px;
-  padding: 10px 10px 50px 10px;
+  padding: 8px 8px 8px 8px;
   border: 1px solid rgba(140, 230, 110, 0.24);
   border-radius: 4px;
   background: rgba(7, 16, 8, 0.6);
   cursor: pointer;
   animation: perkCardEnter 0.3s ease-out;
   transition: all 0.2s ease;
+}
+
+.perk-card-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
 }
 
 .perk-card:hover {
@@ -720,6 +728,10 @@ textarea::placeholder {
 .rank-dots {
   display: flex;
   gap: 4px;
+  justify-content: center;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 4px;
 }
 
 .rank-dots button {
@@ -730,11 +742,18 @@ textarea::placeholder {
   border-radius: 50%;
   background: transparent;
   transition: all 0.15s ease;
+  cursor: pointer;
 }
 
-.rank-dots button:hover {
+.rank-dots button:hover:not(:disabled) {
   border-color: rgba(140, 230, 110, 0.6);
   box-shadow: 0 0 6px rgba(140, 230, 110, 0.2);
+}
+
+.perk-card-ranks {
+  border-top: 1px solid rgba(140, 230, 110, 0.12);
+  margin: 0 -8px -8px -8px;
+  padding: 6px 8px;
 }
 
 .rank-dots button.filled {

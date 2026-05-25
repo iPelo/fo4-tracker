@@ -1119,26 +1119,28 @@ function App() {
                               key={item.perk.name}
                               title={item.perk.summary}
                             >
-                              <div className="perk-card-name">{item.perk.name}</div>
+                              <div className="perk-card-top">
+                                <div className="perk-card-name">{item.perk.name}</div>
 
-                              <div className="perk-card-stars">
-                                {Array.from({ length: item.perk.levels.length }, (_, index) => (
-                                  <span
-                                    key={index}
-                                    className={`perk-card-star ${index < item.currentRank ? "" : "empty"}`}
-                                  >
-                                    ★
+                                <div className="perk-card-stars">
+                                  {Array.from({ length: item.perk.levels.length }, (_, index) => (
+                                    <span
+                                      key={index}
+                                      className={`perk-card-star ${index < item.currentRank ? "" : "empty"}`}
+                                    >
+                                      ★
+                                    </span>
+                                  ))}
+                                </div>
+
+                                <div className="perk-card-reqs">
+                                  <span className={item.statValue >= item.perk.specialReq ? "perk-card-req" : "perk-card-req unmet"}>
+                                    {stat.abbr} {item.perk.specialReq}
                                   </span>
-                                ))}
-                              </div>
-
-                              <div className="perk-card-reqs">
-                                <span className={item.statValue >= item.perk.specialReq ? "perk-card-req" : "perk-card-req unmet"}>
-                                  {stat.abbr} {item.perk.specialReq}
-                                </span>
-                                <span className={profile.level >= (item.nextRank <= item.perk.levels.length ? item.perk.levels[item.nextRank - 1] : 1) ? "perk-card-req" : "perk-card-req unmet"}>
-                                  Lvl {item.nextRank <= item.perk.levels.length ? item.perk.levels[item.nextRank - 1] : "—"}
-                                </span>
+                                  <span className={profile.level >= (item.nextRank <= item.perk.levels.length ? item.perk.levels[item.nextRank - 1] : 1) ? "perk-card-req" : "perk-card-req unmet"}>
+                                    Lvl {item.nextRank <= item.perk.levels.length ? item.perk.levels[item.nextRank - 1] : "—"}
+                                  </span>
+                                </div>
                               </div>
 
                               <div className="perk-card-tooltip">
@@ -1153,13 +1155,12 @@ function App() {
                                   </div>
                                 )}
                                 <div style={{ marginTop: "6px", color: "var(--muted)", fontSize: "0.65rem" }}>
-                                  Click stars to rank up/down
+                                  Click dots below to rank up/down
                                 </div>
                               </div>
 
                               <div
-                                className="rank-dots"
-                                style={{ position: "absolute", bottom: "8px", left: "50%", transform: "translateX(-50%)", display: "flex", gap: "4px", pointerEvents: "auto" }}
+                                className="rank-dots perk-card-ranks"
                                 aria-label={`${item.perk.name} rank`}
                               >
                                 {Array.from({ length: item.perk.levels.length }, (_, index) => {
